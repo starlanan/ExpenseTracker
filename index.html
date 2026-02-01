@@ -85,7 +85,6 @@
             color: white;
             font-weight: bold;
             font-size: 16px;
-            cursor: pointer;
         }
         .theme-controls {
             display: flex;
@@ -271,32 +270,6 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-        .month-header {
-            background-color: var(--bg-tertiary);
-            padding: 15px 20px;
-            font-weight: 600;
-            font-size: 16px;
-            color: var(--text-primary);
-            border-bottom: 2px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .month-summary {
-            display: flex;
-            gap: 20px;
-            font-size: 14px;
-            font-weight: normal;
-        }
-        .month-income {
-            color: var(--success-color);
-        }
-        .month-expense {
-            color: var(--danger-color);
-        }
-        .month-balance {
-            color: var(--primary-color);
         }
         .transaction-item {
             padding: 15px 20px;
@@ -608,14 +581,17 @@
                 this.updateSummary();
             }
             setupEventListeners() {
+                // Form submission
                 document.getElementById('transactionForm').addEventListener('submit', (e) => {
                     e.preventDefault();
                     this.addTransaction();
                 });
+                // Edit form submission
                 document.getElementById('editForm').addEventListener('submit', (e) => {
                     e.preventDefault();
                     this.updateTransaction();
                 });
+                // Filter buttons
                 document.querySelectorAll('.filter-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -629,6 +605,7 @@
                         this.updateSummary();
                     });
                 });
+                // Date range filter
                 document.getElementById('applyFilter').addEventListener('click', () => {
                     const start = document.getElementById('startDate').value;
                     const end = document.getElementById('endDate').value;
@@ -641,24 +618,30 @@
                         this.updateSummary();
                     }
                 });
+                // Transaction type change
                 document.getElementById('transactionType').addEventListener('change', () => {
                     this.updateCategories();
                 });
                 document.getElementById('editType').addEventListener('change', () => {
                     this.updateEditCategories();
                 });
+                // Modal controls
                 document.getElementById('closeModal').addEventListener('click', () => {
                     document.getElementById('editModal').classList.remove('active');
                 });
+                // Theme toggle
                 document.getElementById('themeToggle').addEventListener('click', () => {
                     this.toggleTheme();
                 });
+                // Color picker
                 document.getElementById('colorPicker').addEventListener('input', (e) => {
                     this.updatePrimaryColor(e.target.value);
                 });
+                // Export button
                 document.getElementById('exportBtn').addEventListener('click', () => {
                     this.exportData();
                 });
+                // User settings
                 document.getElementById('userAvatar').addEventListener('click', () => {
                     const newName = prompt('Enter your name:', this.userSettings.name);
                     if (newName && newName.trim()) {
@@ -759,6 +742,7 @@
                 this.renderTransactions();
                 this.updateSummary();
                 
+                // Reset form
                 document.getElementById('transactionForm').reset();
                 this.setDefaultDate();
             }
@@ -836,74 +820,22 @@
                     return;
                 }
                 
-                const groupedByMonth = this.groupTransactionsByMonth(filtered);
-                
-                let html = '';
-                for (const [monthKey, monthTransactions] of Object.entries(groupedByMonth)) {
-                    const monthDate = new Date(monthTransactions[0].date);
-                    const monthName = monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-                    
-                    const monthIncome = monthTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-                    const monthExpense = monthTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-                    const monthBalance = monthIncome - monthExpense;
-                    
-                    html += `
-                        <div class="month-header">
-                            <div>${monthName}</div>
-                            <div class="month-summary">
-                                <span class="month-income">Income: $${monthIncome.toFixed(2)}</span>
-                                <span class="month-expense">Expense: $${monthExpense.toFixed(2)}</span>
-                                <span class="month-balance">Balance: $${monthBalance.toFixed(2)}</span>
-                            </div>
+                container.innerHTML = filtered.map(transaction => `
+                    <div class="transaction-item">
+                        <div class="transaction-info">
+                            <div class="transaction-date">${new Date(transaction.date).toLocaleDateString()}</div>
+                            <div class="transaction-description">${transaction.description}</div>
+                            <span class="transaction-category">${transaction.category}</span>
                         </div>
-                    `;
-                    
-                    html += monthTransactions.map(transaction => `
-                        <div class="transaction-item">
-                            <div class="transaction-info">
-                                <div class="transaction-date">${new Date(transaction.date).toLocaleDateString()}</div>
-                                <div class="transaction-description">${transaction.description}</div>
-                                <span class="transaction-category">${transaction.category}</span>
-                            </div>
-                            <div class="transaction-amount ${transaction.type}">
-                                ${transaction.type === 'expense' ? '-' : '+'}$${transaction.amount.toFixed(2)}
-                            </div>
-                            <div class="transaction-actions">
-                                <button class="icon-btn edit-btn" onclick="tracker.editTransaction(${transaction.id})">✏️</button>
-                                <button class="icon-btn delete-btn" onclick="tracker.deleteTransaction(${transaction.id})">🗑️</button>
-                            </div>
+                        <div class="transaction-amount ${transaction.type}">
+                            ${transaction.type === 'expense' ? '-' : '+'}$${transaction.amount.toFixed(2)}
                         </div>
-                    `).join('');
-                }
-                
-                container.innerHTML = html;
-            }
-            groupTransactionsByMonth(transactions) {
-                const grouped = {};
-                
-                transactions.forEach(transaction => {
-                    const date = new Date(transaction.date);
-                    const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-                    
-                    if (!grouped[monthKey]) {
-                        grouped[monthKey] = [];
-                    }
-                    
-                    grouped[monthKey].push(transaction);
-                });
-                
-                const sortedKeys = Object.keys(grouped).sort((a, b) => {
-                    const [aYear, aMonth] = a.split('-').map(Number);
-                    const [bYear, bMonth] = b.split('-').map(Number);
-                    return (bYear - aYear) || (bMonth - aMonth);
-                });
-                
-                const sortedGrouped = {};
-                sortedKeys.forEach(key => {
-                    sortedGrouped[key] = grouped[key].sort((a, b) => new Date(b.date) - new Date(a.date));
-                });
-                
-                return sortedGrouped;
+                        <div class="transaction-actions">
+                            <button class="icon-btn edit-btn" onclick="tracker.editTransaction(${transaction.id})">✏️</button>
+                            <button class="icon-btn delete-btn" onclick="tracker.deleteTransaction(${transaction.id})">🗑️</button>
+                        </div>
+                    </div>
+                `).join('');
             }
             updateSummary() {
                 const filtered = this.getFilteredTransactions();
@@ -932,6 +864,7 @@
                     balanceStatus.style.color = 'var(--text-secondary)';
                 }
                 
+                // Update current period
                 const periodText = this.currentFilter === 'all' ? 'All Time' :
                                  this.currentFilter === 'today' ? 'Today' :
                                  this.currentFilter === 'week' ? 'This Week' :
@@ -959,6 +892,7 @@
                 URL.revokeObjectURL(url);
             }
         }
+        // Initialize the app
         const tracker = new ExpenseTracker();
     </script>
 </body>
